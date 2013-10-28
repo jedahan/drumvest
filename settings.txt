@@ -1,0 +1,20 @@
+RECEIVER
+ATRE
+ATID 4321 # pan id 4321
+ATMY 0    # address 0
+ATIR 14   # sample rate 12ms
+ATIT 1    # sample buffer 1
+ATIU 1    # i/o output enable
+ATBD 7    # set baud to 115200
+
+SENDER
+ATRE
+ATID 4321 # pan id 4321
+ATMY 1    # address 1
+ATDL 0    # destination address 0
+ATIR 14   # sample rate 12ms
+ATIT 1    # sample buffer 1
+
+ATD0 2    # pin 0 analog in
+ATD1 2    # pin 1 analog in
+ATBD 7    # set baud to 115200
