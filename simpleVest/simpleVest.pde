@@ -22,12 +22,16 @@ byte[] inBuffer = new byte[256];
 String inString;
 
 float[] raw = new float[MY_WIDTH+1];
+float[] raw2 = new float[MY_WIDTH+1];
 float[] eased = new float[MY_WIDTH+1];
+float[] eased2 = new float[MY_WIDTH+1];
 int value = 0;
+int value2 = 0;
 int x = 0;
 
-float easing = 0.1;
+float easing = 0.5;
 float easedValue;
+float easedValue2;
 
 import oscP5.*;
 import netP5.*;
@@ -39,8 +43,8 @@ float threshold, thresholdY;
 
 void setup() 
 {
-  size(MY_WIDTH,255);
-  threshold = height/2;
+  size(MY_WIDTH,360);
+  threshold = height*3/4;
 
   myPort = new Serial(this, "/dev/tty.usbserial-AD026BCW", 115200);
   myPort.bufferUntil(0x7e);
@@ -49,6 +53,7 @@ void setup()
   myRemoteLocation = new NetAddress("127.0.0.1",4321);
   for(int index=0; index<raw.length; index++){
     raw[index]=eased[index]=0;
+    raw2[index]=eased2[index]=0;
   }
 }
 
@@ -57,30 +62,35 @@ void draw()
   easedValue += (value - easedValue) * easing;
   eased[x] = easedValue;
   raw[x] = value;
+
+  easedValue2 += (value2 - easedValue2) * easing;
+  eased2[x] = easedValue2;
+  raw2[x] = value2;
   
-  background(127);
+  background(0);
 
   // draw values
-  stroke(0);
   for(int index=0; index<raw.length; index++){
-    float y  = map(raw[index], 0, 1024, height/2, 0);
-    line(index,0,index,y);
-    float ey  = map(eased[index], 0, 1024, height/2, 0);
-    line(index,height/2,index,height/2+ey);
+    float y  = map(eased[index], 0, 1023, 0, height);
+    float y2  = map(eased2[index], 0, 1023, 0, height);
+    stroke(127,0,0);
+    line(index,height,index,height-y);
+    stroke(0,0,127);
+    line(index,height,index,height-y2);
   }
 
   // threshold
-  threshold = average(x,100);
   stroke(255,0,255);
-  thresholdY = map(threshold, 0, 1024, height, height/2);
+  threshold = map(thresholdY, height, 0, 0, 1024);
   line(0,thresholdY,width,thresholdY);
 
   // current value line
-  stroke(0,0,255);
+  stroke(0,255,0);
   line(x,0,x,height);
 
   // draw value
   text(value,5,36+5);
+  text(value2,5,66+5);
   
   // draw threshold
   text(threshold,width-100,36+5);
@@ -97,16 +107,22 @@ void draw()
       oscP5.send(m,myRemoteLocation);
     }
   }
+  
+  float first2 = eased2[mod(x,eased2.length)];
+  float previous2 = eased2[mod(x-1,eased2.length)];
+  float current2 = eased2[mod(x-2,eased2.length)];
+
+  if(current2 < previous2 && previous2 > first2){
+    if(previous2 - threshold > 64) {
+      println("hit " + ++count + ", strength " + (previous2-threshold));
+      OscMessage m = new OscMessage("/pad");
+      m.add(value);
+      oscP5.send(m,myRemoteLocation);
+    }
+  }
+
   x++;
   if(x>width){x=0;}
-}
-
-int average(int index, int samples){
-  float sum = 0;
-  for(int i=0; i<samples; i++){
-    sum += eased[mod(index-i,eased.length)];
-  }
-  return (int)sum/samples;
 }
 
 int mod(int val, int mod) {
@@ -117,6 +133,14 @@ void serialEvent(Serial myPort) {
   myPort.readBytesUntil(0x7e,inBuffer);
   if (inBuffer != null){
     value = (inBuffer[12] * 256) + inBuffer[11];
+    value2 = (inBuffer[14] * 256) + inBuffer[13];
+    
+    /*
+    for(int i=0; i<16; i++){
+      print(hex(inBuffer[i])+" ");
+    }
+    println();
+    */
   }
 }
 
